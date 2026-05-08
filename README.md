@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Unitrak Schedule Lab
 
-## Getting Started
+This is the backend/schedule part of the Unitrak final project. It is intentionally small because the login, signup flow, Redis work, and CC dashboard are being made by other group members.
 
-First, run the development server:
+## What This Lab Does
+
+- Uses Next.js for the web page and API routes.
+- Uses Prisma with SQLite to store train departures.
+- Downloads Amtrak's official GTFS schedule feed.
+- Finds upcoming trains at Durham station `DNC`.
+- Shows those trains on the homepage and at `/api/trains`.
+- Uses a tiny demo schedule only if the GTFS download fails.
+
+## Files To Look At
+
+- `src/app/page.tsx` - simple table page for the train schedule
+- `src/app/api/trains/route.ts` - API route that returns trains
+- `src/app/api/jobs/sync-trains/route.ts` - API route that refreshes the database
+- `src/lib/trains.ts` - the main train-fetching code
+- `prisma/schema.prisma` - the SQLite table
+
+## Setup
 
 ```bash
+npm install
+npm run prisma:generate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment
 
-## Learn More
+```bash
+DATABASE_URL="file:./dev.db"
+TRAIN_STATION_CODE="DNC"
+```
 
-To learn more about Next.js, take a look at the following resources:
+## API Testing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Get trains:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+curl http://localhost:3000/api/trains
+```
 
-## Deploy on Vercel
+Force the app to download the GTFS feed again:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+curl "http://localhost:3000/api/trains?sync=1"
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run the sync job endpoint:
+
+```bash
+curl -X POST http://localhost:3000/api/jobs/sync-trains
+```
+
+## Note
+
+If your local database has old tables from an earlier version, that is okay for running the app. For a clean lab database, stop the dev server, delete `dev.db`, and run the app again.

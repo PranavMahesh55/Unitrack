@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model TrainStop {
+  id                 String   @id @default(cuid())
+  tripKey            String   @unique
+  stationCode        String   @default("DNC")
+  trainNumber        String
+  routeName          String?
+  destination        String
+  scheduledDeparture DateTime
+  source             String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([stationCode, scheduledDeparture])
+}

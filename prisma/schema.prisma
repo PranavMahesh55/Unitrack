@@ -15,9 +15,107 @@ model TrainStop {
   routeName          String?
   destination        String
   scheduledDeparture DateTime
+  estimatedDeparture DateTime?
+  delayMinutes       Int      @default(0)
+  status             String   @default("scheduled")
   source             String
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  signups            Signup[]
+  shuttleRun         ShuttleRun?
 
   @@index([stationCode, scheduledDeparture])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("student")
+  banned        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  signups       Signup[]
+  auditLogs     AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Signup {
+  id          String    @id @default(cuid())
+  userId      String
+  trainStopId String
+  status      String    @default("active")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cancelledAt DateTime?
+  boardedAt   DateTime?
+  pickedUpAt  DateTime?
+  noShowAt    DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainStop   TrainStop @relation(fields: [trainStopId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([trainStopId, status])
+}
+
+model ShuttleRun {
+  id          String    @id @default(cuid())
+  trainStopId String    @unique
+  status      String    @default("boarding")
+  departedAt  DateTime?
+  ccNotes     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  trainStop   TrainStop @relation(fields: [trainStopId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
 }

@@ -4,6 +4,7 @@ import AdmZip from "adm-zip";
 import { parse } from "csv-parse/sync";
 import { fromZonedTime } from "date-fns-tz";
 
+import { cacheGetJson, cacheSetJson, publishLiveEvent } from "@/lib/live";
 import { prisma } from "@/lib/prisma";
 
 const STATION_CODE = process.env.TRAIN_STATION_CODE ?? "DNC";
@@ -66,11 +67,18 @@ export type TrainForPage = {
   routeName: string | null;
   destination: string;
   scheduledDeparture: string;
+  estimatedDeparture: string | null;
+  delayMinutes: number;
+  status: string;
   source: string;
 };
 
-type TrainToSave = Omit<TrainForPage, "id" | "scheduledDeparture"> & {
+type TrainToSave = Omit<
+  TrainForPage,
+  "id" | "scheduledDeparture" | "estimatedDeparture"
+> & {
   scheduledDeparture: Date;
+  estimatedDeparture: Date | null;
 };
 
 function addHours(date: Date, hours: number) {
@@ -271,6 +279,9 @@ async function fetchGtfsTrains(stationCode: string) {
         routeName: route?.route_long_name ?? route?.route_short_name ?? null,
         destination: trip.trip_headsign || "Unknown destination",
         scheduledDeparture: departure,
+        estimatedDeparture: departure,
+        delayMinutes: 0,
+        status: "scheduled",
         source: "GTFS",
       });
     }
@@ -281,7 +292,7 @@ async function fetchGtfsTrains(stationCode: string) {
   );
 }
 
-function makeDemoTrains(stationCode: string): TrainToSave[] {
+function makeFallbackTrains(stationCode: string): TrainToSave[] {
   const today = serviceDate(new Date());
 
   return [
@@ -293,13 +304,16 @@ function makeDemoTrains(stationCode: string): TrainToSave[] {
     const departure = gtfsTimeToDate(today, time);
 
     return {
-      tripKey: `demo-${stationCode}-${trainNumber}-${departure.toISOString()}`,
+      tripKey: `fallback-${stationCode}-${trainNumber}-${departure.toISOString()}`,
       stationCode,
       trainNumber,
       routeName,
       destination,
       scheduledDeparture: departure,
-      source: "Demo",
+      estimatedDeparture: departure,
+      delayMinutes: 0,
+      status: "fallback",
+      source: "Fallback",
     };
   });
 }
@@ -312,6 +326,9 @@ function trainRowForPage(row: {
   routeName: string | null;
   destination: string;
   scheduledDeparture: Date;
+  estimatedDeparture: Date | null;
+  delayMinutes: number;
+  status: string;
   source: string;
 }): TrainForPage {
   return {
@@ -322,6 +339,9 @@ function trainRowForPage(row: {
     routeName: row.routeName,
     destination: row.destination,
     scheduledDeparture: row.scheduledDeparture.toISOString(),
+    estimatedDeparture: row.estimatedDeparture?.toISOString() ?? null,
+    delayMinutes: row.delayMinutes,
+    status: row.status,
     source: row.source,
   };
 }
@@ -333,6 +353,9 @@ async function saveTrains(trains: TrainToSave[]) {
       update: {
         routeName: train.routeName,
         destination: train.destination,
+        estimatedDeparture: train.estimatedDeparture,
+        delayMinutes: train.delayMinutes,
+        status: train.status,
         source: train.source,
       },
       create: train,
@@ -361,35 +384,55 @@ async function readSavedTrains(stationCode: string) {
 
 export async function syncTrains(stationCode = STATION_CODE) {
   const cleanStationCode = stationCode.toUpperCase();
+  const cacheKey = `trains:${cleanStationCode}`;
   let source = "GTFS";
   let trains = await fetchGtfsTrains(cleanStationCode).catch(() => {
-    source = "Demo";
-    return makeDemoTrains(cleanStationCode);
+    source = "Fallback";
+    return makeFallbackTrains(cleanStationCode);
   });
 
   if (trains.length === 0) {
-    source = "Demo";
-    trains = makeDemoTrains(cleanStationCode);
+    source = "Fallback";
+    trains = makeFallbackTrains(cleanStationCode);
   }
 
   await prisma.trainStop.deleteMany({
-    where: { stationCode: cleanStationCode },
+    where: {
+      stationCode: cleanStationCode,
+      scheduledDeparture: { lt: addHours(new Date(), -12) },
+      signups: { none: {} },
+    },
   });
   await saveTrains(trains);
+  const savedTrains = await readSavedTrains(cleanStationCode);
+  await cacheSetJson(cacheKey, savedTrains, 60 * 5);
+  await publishLiveEvent("trains.synced", {
+    stationCode: cleanStationCode,
+    count: savedTrains.length,
+    source,
+  });
 
   return {
     source,
-    trains: await readSavedTrains(cleanStationCode),
+    trains: savedTrains,
   };
 }
 
 export async function getTrains(stationCode = STATION_CODE, forceSync = false) {
   const cleanStationCode = stationCode.toUpperCase();
+  const cacheKey = `trains:${cleanStationCode}`;
 
   if (!forceSync) {
+    const cached = await cacheGetJson<TrainForPage[]>(cacheKey);
+
+    if (cached?.length) {
+      return cached;
+    }
+
     const saved = await readSavedTrains(cleanStationCode);
 
     if (saved.length > 0) {
+      await cacheSetJson(cacheKey, saved, 60 * 5);
       return saved;
     }
   }

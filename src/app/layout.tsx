@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Unitrak Schedule Lab",
-  description: "Simple NCSSM Amtrak schedule backend",
+  title: "Unitrak",
+  description: "NCSSM Amtrak shuttle coordination app",
 };
 
 export default function RootLayout({

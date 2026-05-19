@@ -9,6 +9,7 @@ const createSignupSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // students post here when they choose a train
   const auth = await requireApiUser();
 
   if (!auth.user) {

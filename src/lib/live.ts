@@ -17,6 +17,7 @@ const globalLive = globalThis as unknown as {
   unitrakCache?: Map<string, string>;
 };
 
+// keep this on globalthis so hot reload doesnt make new objects every request
 const bus = globalLive.unitrakBus ?? new EventEmitter();
 bus.setMaxListeners(100);
 globalLive.unitrakBus = bus;
@@ -27,6 +28,7 @@ globalLive.unitrakCache = memoryCache;
 function makeRedis() {
   const url = process.env.REDIS_URL;
 
+  // redis is optional so no url just means use memory mode
   if (!url) {
     return null;
   }
@@ -39,7 +41,7 @@ function makeRedis() {
     });
 
     globalLive.unitrakRedis.on("error", () => {
-      // The app still works without Redis during local development.
+      // the app still works without redis during local development
     });
   }
 
@@ -53,6 +55,7 @@ async function connect(redis: Redis) {
 }
 
 export async function publishLiveEvent(type: string, payload?: unknown) {
+  // first send to memory bus then redis if it is running
   const event: LiveEvent = { type, payload, at: new Date().toISOString() };
   bus.emit(CHANNEL, event);
 
@@ -66,11 +69,12 @@ export async function publishLiveEvent(type: string, payload?: unknown) {
     await connect(redis);
     await redis.publish(CHANNEL, JSON.stringify(event));
   } catch {
-    // In rough local mode we silently fall back to the in-memory event bus.
+    // in rough local mode we silently fall back to the in memory event bus
   }
 }
 
 export async function subscribeLiveEvents(handler: (event: LiveEvent) => void) {
+  // sse uses this to send changes to browser tabs
   const redisUrl = process.env.REDIS_URL;
 
   if (redisUrl) {
@@ -80,7 +84,7 @@ export async function subscribeLiveEvents(handler: (event: LiveEvent) => void) {
       enableOfflineQueue: false,
     });
     subscriber.on("error", () => {
-      // Redis is optional for this project. If it is down, SSE uses memory events.
+      // redis is optional for this project if it is down sse uses memory events
     });
 
     try {
@@ -90,7 +94,7 @@ export async function subscribeLiveEvents(handler: (event: LiveEvent) => void) {
         try {
           handler(JSON.parse(message) as LiveEvent);
         } catch {
-          // Ignore malformed pub/sub messages.
+          // ignore malformed pub sub messages
         }
       });
 
@@ -119,7 +123,7 @@ export async function cacheGetJson<T>(key: string) {
       const value = await redis.get(key);
       return value ? (JSON.parse(value) as T) : null;
     } catch {
-      // Fall through to memory cache.
+      // fall through to memory cache
     }
   }
 
@@ -141,6 +145,6 @@ export async function cacheSetJson(key: string, value: unknown, seconds = 300) {
     await connect(redis);
     await redis.set(key, text, "EX", seconds);
   } catch {
-    // Memory cache is enough for local development.
+    // memory cache is enough for local development
   }
 }

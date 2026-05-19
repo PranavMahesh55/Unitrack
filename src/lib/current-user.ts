@@ -16,44 +16,67 @@ export type AppUser = {
   banned: boolean;
 };
 
-const CC_TEST_COOKIE = "unitrak_cc_test";
+// these test buttons are only for class testing not real auth
+const TEST_ROLE_COOKIE = "unitrak_test_role";
 
 export function ccTestLoginAllowed() {
   return process.env.ALLOW_CC_TEST_LOGIN !== "false";
 }
 
-export async function setCcTestLogin() {
+export function studentTestLoginAllowed() {
+  return process.env.ALLOW_STUDENT_TEST_LOGIN !== "false";
+}
+
+async function setTestLogin(role: UserRole) {
   const store = await cookies();
-  store.set(CC_TEST_COOKIE, "true", {
+  // small cookie says which test dashboard to open
+  store.set(TEST_ROLE_COOKIE, role, {
     path: "/",
     sameSite: "lax",
     httpOnly: true,
   });
 }
 
-export async function clearCcTestLogin() {
-  const store = await cookies();
-  store.delete(CC_TEST_COOKIE);
+export async function setCcTestLogin() {
+  await setTestLogin("cc");
 }
 
-async function getCcTestUser(): Promise<AppUser | null> {
-  if (!ccTestLoginAllowed()) {
+export async function setStudentTestLogin() {
+  await setTestLogin("student");
+}
+
+export async function clearTestLogins() {
+  const store = await cookies();
+  store.delete(TEST_ROLE_COOKIE);
+}
+
+async function getTestUser(): Promise<AppUser | null> {
+  const store = await cookies();
+  const role = store.get(TEST_ROLE_COOKIE)?.value as UserRole | undefined;
+
+  if (role !== "student" && role !== "cc") {
     return null;
   }
 
-  const enabled = (await cookies()).get(CC_TEST_COOKIE)?.value === "true";
-
-  if (!enabled) {
+  if (role === "cc" && !ccTestLoginAllowed()) {
     return null;
   }
 
+  if (role === "student" && !studentTestLoginAllowed()) {
+    return null;
+  }
+
+  const email = role === "cc" ? "test.cc@ncssm.edu" : "test.student@ncssm.edu";
+  const name = role === "cc" ? "Test CC" : "Test Student";
+
+  // creates fake users so we can click around if oauth is being annoying
   const user = await prisma.user.upsert({
-    where: { email: "test.cc@ncssm.edu" },
-    update: { role: "cc", banned: false },
+    where: { email },
+    update: { role, banned: false },
     create: {
-      email: "test.cc@ncssm.edu",
-      name: "Test CC",
-      role: "cc",
+      email,
+      name,
+      role,
       banned: false,
     },
   });
@@ -73,6 +96,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   const email = session?.user?.email?.toLowerCase();
 
   if (email) {
+    // real google login path
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user || user.banned) {
@@ -89,7 +113,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     };
   }
 
-  return getCcTestUser();
+  return getTestUser();
 }
 
 export async function requireUser() {
@@ -105,6 +129,7 @@ export async function requireUser() {
 export async function requireCc() {
   const user = await requireUser();
 
+  // cc pages should kick students back to their own dashboard
   if (user.role !== "cc") {
     redirect("/student");
   }

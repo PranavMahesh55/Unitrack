@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { syncTrains } from "@/lib/trains";
 
 export async function POST(request: NextRequest) {
+  // manual sync endpoint useful for testing before a real cron job
   try {
     const stationCode =
       request.nextUrl.searchParams.get("station") ??

@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CcPage() {
   const user = await requireCc();
+  // server loads the first roster then the client keeps refreshing it
   const roster = await getRoster();
 
   return (
@@ -26,10 +27,10 @@ export default async function CcPage() {
               </p>
             </div>
             <nav className="flex flex-wrap gap-2 text-sm">
-              <Link className="rounded border border-slate-300 px-3 py-2" href="/student">
+              <Link className="rounded bg-blue-900 px-3 py-2 text-white" href="/student">
                 Student view
               </Link>
-              <Link className="rounded border border-slate-300 px-3 py-2" href="/cc/history">
+              <Link className="rounded bg-blue-900 px-3 py-2 text-white" href="/cc/history">
                 History
               </Link>
               <SignOutButton />

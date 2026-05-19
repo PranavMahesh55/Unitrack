@@ -11,7 +11,7 @@ Unitrak is a rough class-project version of an NCSSM Amtrak shuttle tracker. It 
 - Has a Google OAuth setup through NextAuth.
 - Lets students create and update shuttle signups.
 - Gives CCs a roster grouped by train.
-- Includes a temporary CC test button for class demos.
+- Includes temporary student and CC test buttons for class demos.
 - Uses Redis for cache/pub-sub if Redis is running.
 - Falls back to an in-memory cache/events system if Redis is not running.
 - Saves audit log rows for important actions.
@@ -63,6 +63,7 @@ GOOGLE_CLIENT_ID="..."
 GOOGLE_CLIENT_SECRET="..."
 CC_EMAILS="cc1@ncssm.edu,cc2@ncssm.edu"
 ALLOW_CC_TEST_LOGIN="true"
+ALLOW_STUDENT_TEST_LOGIN="true"
 ```
 
 Optional Redis:

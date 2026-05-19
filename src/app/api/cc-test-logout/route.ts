@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { clearCcTestLogin } from "@/lib/current-user";
+import { clearTestLogins } from "@/lib/current-user";
 
 export async function POST() {
-  await clearCcTestLogin();
+  // clear either test role when the user signs out
+  await clearTestLogins();
   return NextResponse.json({ ok: true });
 }

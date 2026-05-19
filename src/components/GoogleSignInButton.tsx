@@ -7,6 +7,7 @@ export function GoogleSignInButton({ callbackUrl = "/student" }: { callbackUrl?:
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
+    // nextauth needs this helper so google gets the right callback
     setLoading(true);
     await signIn("google", { callbackUrl });
     setLoading(false);
@@ -14,7 +15,7 @@ export function GoogleSignInButton({ callbackUrl = "/student" }: { callbackUrl?:
 
   return (
     <button
-      className="block w-full rounded-md bg-blue-700 px-4 py-3 text-center font-bold text-white disabled:bg-blue-400"
+      className="block w-full rounded-md bg-blue-900 px-4 py-3 text-center font-bold text-white disabled:opacity-50"
       disabled={loading}
       onClick={handleClick}
       type="button"

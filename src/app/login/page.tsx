@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { googleAuthReady } from "@/lib/auth-options";
-import { ccTestLoginAllowed, getCurrentUser } from "@/lib/current-user";
+import {
+  ccTestLoginAllowed,
+  getCurrentUser,
+  studentTestLoginAllowed,
+} from "@/lib/current-user";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -61,25 +65,36 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <GoogleSignInButton callbackUrl={callbackUrl} />
           ) : (
             <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              {/* this shows if we forgot the google keys in env */}
               Google keys are missing. Add `GOOGLE_CLIENT_ID`,
               `GOOGLE_CLIENT_SECRET`, and `NEXTAUTH_SECRET` to `.env` for real
               login.
             </div>
           )}
 
+          {/* test buttons are for grading when oauth accounts arent all setup */}
           {ccTestLoginAllowed() ? (
             <Link
-              className="block rounded-md border border-slate-300 px-4 py-3 text-center font-bold"
+              className="block rounded-md bg-blue-900 px-4 py-3 text-center font-bold text-white"
               href="/api/cc-test-login"
             >
               Test CC Dashboard
             </Link>
           ) : null}
+
+          {studentTestLoginAllowed() ? (
+            <Link
+              className="block rounded-md bg-blue-900 px-4 py-3 text-center font-bold text-white"
+              href="/api/student-test-login"
+            >
+              Test Student Dashboard
+            </Link>
+          ) : null}
         </div>
 
         <p className="mt-5 text-xs text-slate-500">
-          Rule used in code: only emails ending in `@ncssm.edu` are accepted;
-          `CC_EMAILS` decides who gets CC access.
+          Only `@ncssm.edu` accounts can sign in. CC access comes from the
+          `CC_EMAILS` list.
         </p>
       </div>
     </main>

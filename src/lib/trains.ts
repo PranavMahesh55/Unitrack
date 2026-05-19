@@ -8,6 +8,7 @@ import { cacheGetJson, cacheSetJson, publishLiveEvent } from "@/lib/live";
 import { prisma } from "@/lib/prisma";
 
 const STATION_CODE = process.env.TRAIN_STATION_CODE ?? "DNC";
+// official amtrak gtfs zip is our main schedule source
 const GTFS_URL =
   process.env.AMTRAK_GTFS_URL ??
   "https://content.amtrak.com/content/gtfs/GTFS.zip";
@@ -118,6 +119,7 @@ function shiftServiceDate(yyyymmdd: string, days: number) {
 }
 
 function gtfsTimeToDate(yyyymmdd: string, gtfsTime: string) {
+  // gtfs can use times over 24 so this fixes overnight trips
   const [rawHour, minute = "0", second = "0"] = gtfsTime.split(":").map(Number);
   const extraDays = Math.floor(rawHour / 24);
   const hour = rawHour % 24;
@@ -210,6 +212,7 @@ function serviceRunsOnDate(
 }
 
 async function fetchGtfsTrains(stationCode: string) {
+  // this parses the zip and keeps just trains that stop at dnc
   const response = await fetch(GTFS_URL);
 
   if (!response.ok) {
@@ -267,6 +270,7 @@ async function fetchGtfsTrains(stationCode: string) {
         trip.trip_short_name || route?.route_short_name || trip.trip_id;
       const key = `${stationCode}-${trainNumber}-${departure.toISOString()}`;
 
+      // avoid duplicate trains if gtfs has the same stop twice
       if (seen.has(key)) {
         continue;
       }
@@ -293,6 +297,7 @@ async function fetchGtfsTrains(stationCode: string) {
 }
 
 function makeFallbackTrains(stationCode: string): TrainToSave[] {
+  // if the download breaks use small backup list so demo still loads
   const today = serviceDate(new Date());
 
   return [
@@ -383,6 +388,7 @@ async function readSavedTrains(stationCode: string) {
 }
 
 export async function syncTrains(stationCode = STATION_CODE) {
+  // sync is called by the api route or when cache database is empty
   const cleanStationCode = stationCode.toUpperCase();
   const cacheKey = `trains:${cleanStationCode}`;
   let source = "GTFS";
@@ -419,6 +425,7 @@ export async function syncTrains(stationCode = STATION_CODE) {
 }
 
 export async function getTrains(stationCode = STATION_CODE, forceSync = false) {
+  // try cache then saved database rows then download fresh schedule
   const cleanStationCode = stationCode.toUpperCase();
   const cacheKey = `trains:${cleanStationCode}`;
 

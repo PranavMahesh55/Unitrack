@@ -13,6 +13,7 @@ type Params = {
 export default async function TripPage({ params }: Params) {
   const user = await requireUser();
   const { id } = await params;
+  // this also checks that students only see their own trip
   const signup = await getTripForUser(user, id);
 
   if (!signup) {

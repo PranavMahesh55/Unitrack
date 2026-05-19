@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  // browser keeps this open to get live updates
   const encoder = new TextEncoder();
   let stop: () => void = () => {};
 

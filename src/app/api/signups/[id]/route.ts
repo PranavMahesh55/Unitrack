@@ -13,6 +13,7 @@ type Params = {
 };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  // student and cc buttons both come thru this endpoint
   const auth = await requireApiUser();
 
   if (!auth.user) {

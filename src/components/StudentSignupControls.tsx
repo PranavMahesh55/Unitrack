@@ -14,6 +14,7 @@ export function StudentSignupControls({ trainStopId, signupId, status }: Props) 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
+  // one helper for all the signup buttons
   async function callApi(url: string, body: unknown, method = "PATCH") {
     setBusy(true);
     setMessage("");
@@ -35,15 +36,25 @@ export function StudentSignupControls({ trainStopId, signupId, status }: Props) 
     setBusy(false);
   }
 
+  function signUp() {
+    void callApi("/api/signups", { trainStopId }, "POST");
+  }
+
+  function markBoarded() {
+    void callApi(`/api/signups/${signupId}`, { status: "boarded" });
+  }
+
+  function cancelSignup() {
+    void callApi(`/api/signups/${signupId}`, { status: "cancelled" });
+  }
+
   if (!signupId || status === "cancelled" || status === "no_show") {
     return (
       <div>
         <button
-          className="rounded bg-blue-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
+          className="rounded bg-blue-900 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
           disabled={busy}
-          onClick={() =>
-            callApi("/api/signups", { trainStopId }, "POST")
-          }
+          onClick={signUp}
         >
           Sign up
         </button>
@@ -56,21 +67,17 @@ export function StudentSignupControls({ trainStopId, signupId, status }: Props) 
     <div className="flex flex-wrap items-center gap-2">
       {status === "active" ? (
         <button
-          className="rounded bg-green-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
+          className="rounded bg-blue-900 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
           disabled={busy}
-          onClick={() =>
-            callApi(`/api/signups/${signupId}`, { status: "boarded" })
-          }
+          onClick={markBoarded}
         >
           I boarded
         </button>
       ) : null}
       <button
-        className="rounded border border-slate-300 px-3 py-2 text-sm font-bold disabled:opacity-50"
+        className="rounded bg-blue-900 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
         disabled={busy}
-        onClick={() =>
-          callApi(`/api/signups/${signupId}`, { status: "cancelled" })
-        }
+        onClick={cancelSignup}
       >
         Cancel
       </button>

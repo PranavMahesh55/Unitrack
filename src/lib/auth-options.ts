@@ -12,6 +12,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 export const googleAuthReady = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 
+// cc emails is how we mark ccs without making a whole admin page
 export function ccEmailSet() {
   return new Set(
     (process.env.CC_EMAILS ?? "")
@@ -50,6 +51,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
+  // only add google if the keys are actually in env
   providers: googleAuthReady
     ? [
         GoogleProvider({
@@ -62,6 +64,7 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user }) {
       const email = user.email?.toLowerCase();
 
+      // stop non ncssm accounts before they get into app
       if (!email || !isNcssmEmail(email)) {
         return false;
       }
@@ -78,6 +81,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async session({ session, user }) {
+      // add our custom fields to the session so pages can check role
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
         select: { id: true, role: true, banned: true },
@@ -95,6 +99,7 @@ export const authOptions: NextAuthOptions = {
   events: {
     async createUser({ user }) {
       if (user.email) {
+        // new google users get a role right away
         await syncRole(user.email);
       }
     },

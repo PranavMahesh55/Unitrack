@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type RosterUser = {
   name: string | null;
@@ -55,13 +55,13 @@ export function CcDashboard({ initialRoster }: { initialRoster: Roster }) {
   const [roster, setRoster] = useState(initialRoster);
   const [loading, setLoading] = useState(false);
 
-  async function loadRoster() {
+  const loadRoster = useCallback(async () => {
     setLoading(true);
     const response = await fetch(`/api/cc/roster?date=${roster.dateText}`);
     const data = await response.json();
     setRoster(data);
     setLoading(false);
-  }
+  }, [roster.dateText]);
 
   async function updateSignup(id: string, status: string) {
     await fetch(`/api/signups/${id}`, {
@@ -83,6 +83,7 @@ export function CcDashboard({ initialRoster }: { initialRoster: Roster }) {
   }
 
   useEffect(() => {
+    // when events come in reload roster instead of refreshing whole page
     const source = new EventSource("/api/events");
     source.onmessage = () => loadRoster();
     source.addEventListener("signup.changed", () => loadRoster());
@@ -90,8 +91,7 @@ export function CcDashboard({ initialRoster }: { initialRoster: Roster }) {
     source.addEventListener("trains.synced", () => loadRoster());
 
     return () => source.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roster.dateText]);
+  }, [loadRoster]);
 
   return (
     <div className="space-y-4">
@@ -101,7 +101,7 @@ export function CcDashboard({ initialRoster }: { initialRoster: Roster }) {
           {loading ? " (refreshing)" : ""}
         </p>
         <button
-          className="rounded border border-slate-300 px-3 py-2 text-sm font-bold"
+          className="rounded bg-blue-900 px-3 py-2 text-sm font-bold text-white"
           onClick={loadRoster}
         >
           Refresh
@@ -127,7 +127,7 @@ export function CcDashboard({ initialRoster }: { initialRoster: Roster }) {
               </p>
             </div>
             <button
-              className="rounded bg-slate-900 px-3 py-2 text-sm font-bold text-white"
+              className="rounded bg-blue-900 px-3 py-2 text-sm font-bold text-white"
               onClick={() => markDeparted(train.id)}
             >
               Mark van departed
@@ -163,13 +163,13 @@ export function CcDashboard({ initialRoster }: { initialRoster: Roster }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    className="rounded bg-green-700 px-3 py-2 font-bold text-white"
+                    className="rounded bg-blue-900 px-3 py-2 font-bold text-white"
                     onClick={() => updateSignup(signup.id, "picked_up")}
                   >
                     Picked up
                   </button>
                   <button
-                    className="rounded border border-red-300 px-3 py-2 font-bold text-red-700"
+                    className="rounded bg-blue-900 px-3 py-2 font-bold text-white"
                     onClick={() => updateSignup(signup.id, "no_show")}
                   >
                     No-show

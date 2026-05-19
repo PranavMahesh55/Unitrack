@@ -13,6 +13,7 @@ type Params = {
 };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  // cc clicks this when the van leaves campus
   const auth = await requireApiCc();
 
   if (!auth.user) {

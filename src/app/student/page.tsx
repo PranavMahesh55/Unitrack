@@ -16,6 +16,7 @@ export default async function StudentPage() {
     getTrains(process.env.TRAIN_STATION_CODE ?? "DNC"),
     getStudentSignups(user.id),
   ]);
+  // this lets each train know if the user already signed up
   const signupByTrain = new Map(
     signups
       .filter((signup) => liveStatuses.has(signup.status))
@@ -37,11 +38,11 @@ export default async function StudentPage() {
               </p>
             </div>
             <nav className="flex flex-wrap gap-2 text-sm">
-              <Link className="rounded border border-slate-300 px-3 py-2" href="/">
+              <Link className="rounded bg-blue-900 px-3 py-2 text-white" href="/">
                 Home
               </Link>
               {user.role === "cc" ? (
-                <Link className="rounded border border-slate-300 px-3 py-2" href="/cc">
+                <Link className="rounded bg-blue-900 px-3 py-2 text-white" href="/cc">
                   CC view
                 </Link>
               ) : null}

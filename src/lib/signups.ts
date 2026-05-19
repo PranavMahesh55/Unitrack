@@ -7,6 +7,7 @@ import { publishLiveEvent } from "@/lib/live";
 import { prisma } from "@/lib/prisma";
 
 const TIME_ZONE = "America/New_York";
+// these are the statuses that still count as on the roster
 const LIVE_STATUSES = ["active", "boarded", "picked_up"] as const;
 
 export type SignupAction = "cancelled" | "boarded" | "picked_up" | "no_show";
@@ -41,6 +42,7 @@ async function audit(
   targetId: string | null,
   metadata?: unknown,
 ) {
+  // audit rows are for proving who did what later
   await prisma.auditLog.create({
     data: {
       actorId,
@@ -67,6 +69,7 @@ export async function createSignup(user: AppUser, trainStopId: string) {
     },
   });
 
+  // keep one active signup per user train so roster dont double count
   if (existing) {
     throw new Error("You already have an active signup for this train.");
   }
@@ -80,6 +83,7 @@ export async function createSignup(user: AppUser, trainStopId: string) {
     include: { trainStop: true, user: true },
   });
 
+  // make a shuttle run as soon as someone signs up for the train
   await prisma.shuttleRun.upsert({
     where: { trainStopId },
     update: {},
@@ -113,6 +117,7 @@ export async function updateSignupStatus(
   const studentAllowed = isOwner && (status === "cancelled" || status === "boarded");
   const ccAllowed = actor.role === "cc";
 
+  // students can only change themselves ccs can change everyone
   if (!studentAllowed && !ccAllowed) {
     throw new Error("You do not have permission to change this signup.");
   }
@@ -136,6 +141,7 @@ export async function updateSignupStatus(
     trainStopId: signup.trainStopId,
     actorRole: actor.role,
   });
+  // tell the live pages to refresh after a change
   await publishLiveEvent("signup.changed", {
     signupId,
     trainStopId: signup.trainStopId,
@@ -150,6 +156,7 @@ export async function markRunDeparted(
   trainStopId: string,
   ccNotes?: string,
 ) {
+  // only ccs should be able to say the van left
   if (actor.role !== "cc") {
     throw new Error("Only CCs can mark the shuttle departed.");
   }

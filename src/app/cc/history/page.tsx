@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CcHistoryPage() {
   await requireCc();
+  // shows runs and logs together so ccs can check what happened
   const { runs, logs } = await getCcHistory();
 
   return (

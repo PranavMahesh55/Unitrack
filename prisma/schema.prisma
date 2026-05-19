@@ -7,6 +7,7 @@ datasource db {
   provider = "sqlite"
 }
 
+// one row for each durham train that students can pick
 model TrainStop {
   id                 String   @id @default(cuid())
   tripKey            String   @unique
@@ -27,6 +28,7 @@ model TrainStop {
   @@index([stationCode, scheduledDeparture])
 }
 
+// authjs stores google users here and we also store role and banned
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -43,6 +45,7 @@ model User {
   auditLogs     AuditLog[]
 }
 
+// authjs needs this table for the google account connection
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -61,6 +64,7 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+// authjs sessions live here so users stay signed in
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -69,6 +73,7 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// authjs uses this even though we are not doing email magic links
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -77,6 +82,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// student signup for one train this is where most actions start
 model Signup {
   id          String    @id @default(cuid())
   userId      String
@@ -95,6 +101,7 @@ model Signup {
   @@index([trainStopId, status])
 }
 
+// cc van info for one train only one run per trainstop
 model ShuttleRun {
   id          String    @id @default(cuid())
   trainStopId String    @unique
@@ -106,6 +113,7 @@ model ShuttleRun {
   trainStop   TrainStop @relation(fields: [trainStopId], references: [id], onDelete: Cascade)
 }
 
+// simple log so we can show what happend later
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?

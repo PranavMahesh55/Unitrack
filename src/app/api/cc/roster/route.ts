@@ -4,6 +4,7 @@ import { requireApiCc } from "@/lib/current-user";
 import { getRoster } from "@/lib/signups";
 
 export async function GET(request: NextRequest) {
+  // cc dashboard calls this to get the current train groups
   const auth = await requireApiCc();
 
   if (!auth.user) {
